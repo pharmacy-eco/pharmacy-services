@@ -1,0 +1,15 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "outDir": "./dist",
+        "baseUrl": "./src",
+        "paths": {
+            "@entity/*": ["entity/*"],
+            "@modules/*": ["modules/*"],
+            "@common/*": ["common/*"],
+            "@utils/*": ["utils/*"],
+            "@interfaces/*": ["interfaces/*"]
+        }
+    },
+    "exclude": ["node_modules", "test", "dist", "**/*spec.ts"]
+}

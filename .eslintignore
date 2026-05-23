@@ -1,0 +1,10 @@
+node_modules
+dist
+libs
+out
+.gitignore
+ormconfig.ts
+tsconfig-paths-bootstrap.js
+database
+api
+
