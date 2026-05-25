@@ -1,5 +1,4 @@
 import { MiddlewareConsumer, Module, RequestMethod } from '@nestjs/common';
-// import { DataSource } from 'typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UsersModule } from './modules/cms/users/users.module';
@@ -27,7 +26,6 @@ import { FrontendReviewModule } from './modules/frontend/review/review.module';
 import { FrontendSearchModule } from './modules/frontend/search/search.module';
 @Module({
     imports: [
-        ConfigModule.forRoot(),
         //CMS
         UsersModule,
         AuthModule,
@@ -54,6 +52,7 @@ import { FrontendSearchModule } from './modules/frontend/search/search.module';
         ConfigModule.forRoot({
             isGlobal: true,
             load: [typeorm],
+            envFilePath: '.env',
         }),
         TypeOrmModule.forRootAsync({
             inject: [ConfigService],
@@ -83,7 +82,7 @@ import { FrontendSearchModule } from './modules/frontend/search/search.module';
     ],
 })
 export class AppModule {
-    constructor() {}
+    constructor() { }
     configure(consumer: MiddlewareConsumer) {
         consumer.apply(AuthMiddleware).forRoutes({ path: '*', method: RequestMethod.ALL });
     }

@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MailerModule } from '@nestjs-modules/mailer';
-import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
+import { HandlebarsAdapter } from '@nestjs-modules/mailer/adapters/handlebars.adapter';
 import { join } from 'path';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { SettingMailModule } from '../cms/setting_mail/setting_mail.module';
@@ -41,4 +41,4 @@ import { SettingMails } from '../../entity/setting_mails.entity';
         }),
     ],
 })
-export class SendMailModule {}
+export class SendMailModule { }

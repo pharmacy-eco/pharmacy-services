@@ -1,4 +1,3 @@
-import { config } from 'dotenv';
 import { DataSource } from 'typeorm';
 import { Users } from './src/entity/users.entity';
 import { Roles } from './src/entity/roles.entity';
@@ -13,15 +12,16 @@ import { ProductsImage } from './src/entity/products_image.entity';
 import { Blogs } from './src/entity/blogs.entity';
 import { Products } from './src/entity/products.entity';
 import { Orders } from './src/entity/orders.entity';
-config();
+
+console.log(process.env, '123123');
 
 export default new DataSource({
     type: 'mysql',
-    host: process.env.MYSQL_HOST,
-    port: parseInt(process.env.MYSQL_PORT ?? ''),
-    username: process.env.MYSQL_USER,
-    password: process.env.MYSQL_PASSWORD,
-    database: process.env.MYSQL_DB,
+    host: `103.147.35.60`,
+    port: 3306,
+    username: `sow_wear`,
+    password: `sow_wear@!123`,
+    database: `sow_wear`,
     entities: [
         Users,
         Roles,

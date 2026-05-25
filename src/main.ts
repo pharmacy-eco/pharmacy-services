@@ -12,7 +12,7 @@ export async function createNestApplication() {
     app.use(json({ limit: '50mb' }));
     app.use(urlencoded({ extended: true, limit: '50mb' }));
     app.enableCors({ origin: '*' });
-    const config = new DocumentBuilder().setTitle('Nhathuoclongchau API').setVersion('1.0').build();
+    const config = new DocumentBuilder().setTitle('Pharmacy API').setVersion('1.0').build();
     const document = SwaggerModule.createDocument(app, config);
     SwaggerModule.setup('swagger', app, document);
 
