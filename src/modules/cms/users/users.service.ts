@@ -29,14 +29,14 @@ export class UsersService {
 
             const queryBuilder = this.userRepository
                 .createQueryBuilder('users')
-                .leftJoin('role', 'r', 'r.id = users.role_id')
+                .leftJoin('roles', 'r', 'r.id = users.role_id')
                 .select([
                     'users.id as id',
-                    'users.name as name',
+                    'users.fullname as fullname',
                     'users.username as username',
                     'users.email as email',
                     'users.status as status',
-                    'users.image as image',
+                    'users.avatar as avatar',
                     'users.role_id as role_id',
                     'r.name as role_name',
                     'users.created_at as created_at',
