@@ -1,5 +1,6 @@
 import { dateTimeTransformer } from '../common/transformers/date-time.transformer';
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Products } from './products.entity';
 
 @Entity()
 export class Reviews {
@@ -14,6 +15,10 @@ export class Reviews {
 
     @Column()
     product_id: number;
+
+    @ManyToOne(() => Products)
+    @JoinColumn({ name: 'product_id' })
+    product: Products;
 
     @Column()
     star: number;
