@@ -41,4 +41,4 @@ import { SettingMails } from '../../entity/setting_mails.entity';
         }),
     ],
 })
-export class SendMailModule {}
+export class SendMailModule { }

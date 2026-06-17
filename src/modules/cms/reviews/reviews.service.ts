@@ -6,7 +6,6 @@ import logger from '../../../common/logger';
 import { CustomRequest } from '../../../interfaces/custom-request.interface';
 import { PageBase } from '../../../common/response/response-page-base';
 import { plainToClass } from 'class-transformer';
-import { Blogs } from '../../../entity/blogs.entity';
 import { FilterReviewsDto } from './dto/filter-reviews.dto';
 import { Reviews } from '../../../entity/reviews.entity';
 import { ReviewsListDto } from './dto/list-reviews.dto';
@@ -21,17 +20,32 @@ export class ReviewsService {
     ) {}
     async findAll(payload: FilterReviewsDto) {
         try {
-            const { name, status, pageIndex = 1, pageSize = 20, sort } = payload;
+            const { name, product_id, status, pageIndex = 1, pageSize = 20, sort } = payload;
 
-            const queryBuilder = this.reviewsRepository.createQueryBuilder('reviews');
+            const queryBuilder = this.reviewsRepository
+                .createQueryBuilder('reviews')
+                .leftJoinAndSelect('reviews.product', 'product');
 
             if (sort) {
-                queryBuilder.orderBy(`reviews.${sort.field}`, sort.order.toUpperCase() as 'ASC' | 'DESC');
+                const sortFieldMap = {
+                    id: 'reviews.id',
+                    name: 'reviews.name',
+                    product_name: 'product.name',
+                    star: 'reviews.star',
+                    status: 'reviews.status',
+                    created_at: 'reviews.created_at',
+                };
+                queryBuilder.orderBy(
+                    sortFieldMap[sort.field] || 'reviews.id',
+                    sort.order.toUpperCase() as 'ASC' | 'DESC',
+                );
             } else {
                 queryBuilder.orderBy(`reviews.id`, 'DESC');
             }
 
             if (name) queryBuilder.andWhere('reviews.name LIKE :name', { name: `%${name}%` });
+
+            if (product_id) queryBuilder.andWhere('reviews.product_id = :product_id', { product_id });
 
             if (status) queryBuilder.andWhere('reviews.status = :status', { status });
 
@@ -56,9 +70,13 @@ export class ReviewsService {
 
     async findOne(id: number) {
         try {
-            return await this.reviewsRepository.findOne({
-                where: { id },
-            });
+            const review = await this.reviewsRepository
+                .createQueryBuilder('reviews')
+                .leftJoinAndSelect('reviews.product', 'product')
+                .where('reviews.id = :id', { id })
+                .getOne();
+
+            return review ? new ReviewsListDto(review) : null;
         } catch (error) {
             logger.error('Lỗi lấy chi tiết');
             logger.error(error.stack);
@@ -70,7 +88,7 @@ export class ReviewsService {
         try {
             const currentUser = this.request.user;
 
-            const newPayload = plainToClass(Blogs, {
+            const newPayload = plainToClass(Reviews, {
                 ...createNewDto,
                 created_by: currentUser?.id,
             });
@@ -96,7 +114,7 @@ export class ReviewsService {
             const dataUpdate = plainToClass(Reviews, {
                 ...oneData,
                 status: 2,
-                deleted_by: currentUser,
+                deleted_by: currentUser?.id,
             });
             await this.reviewsRepository.save(dataUpdate);
         } catch (error) {

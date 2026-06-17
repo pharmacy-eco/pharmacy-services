@@ -6,6 +6,9 @@ export class FilterReviewsDto {
     @ApiProperty({ required: false })
     name: string;
 
+    @ApiProperty({ required: false })
+    product_id: number;
+
     @ApiProperty({ required: false, enum: IStatusEnum })
     status: IStatusEnum;
 

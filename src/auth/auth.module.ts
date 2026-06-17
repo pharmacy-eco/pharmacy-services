@@ -9,7 +9,6 @@ import { LocalStrategy } from './passport/local.auth';
 import { ResponseService } from '../common/response/response.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtStrategy } from './passport/jwt.strategy';
-import { MailService } from './../modules/mailer/mailer.service';
 import { Users } from '../entity/users.entity';
 import { Roles } from '../entity/roles.entity';
 import { RoleHasPermissions } from '../entity/role_has_permission.entity';
@@ -24,7 +23,7 @@ import { RoleHasPermissions } from '../entity/role_has_permission.entity';
         }),
         TypeOrmModule.forFeature([Users, Roles, RoleHasPermissions]),
     ],
-    providers: [AuthService, UsersService, LocalStrategy, ResponseService, JwtStrategy, MailService],
+    providers: [AuthService, UsersService, LocalStrategy, ResponseService, JwtStrategy],
     controllers: [AuthController],
 })
 export class AuthModule {}

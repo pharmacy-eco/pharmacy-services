@@ -5,6 +5,7 @@ export class UserListDto {
     id: number;
     fullname: string;
     username: string;
+    email: string;
     status: number;
     avatar: string;
     role_id: number;
@@ -16,6 +17,7 @@ export class UserListDto {
         this.id = user.id;
         this.fullname = user.fullname;
         this.username = user.username;
+        this.email = user.email;
         this.status = user.status;
         this.avatar = user.avatar;
         this.role_id = user.role_id;

@@ -27,7 +27,7 @@ export class AuthService {
         private roleRepository: Repository<Roles>,
         @InjectRepository(RoleHasPermissions)
         private rolehasRepository: Repository<RoleHasPermissions>,
-    ) {}
+    ) { }
     async validateUser(username: string, password: string): Promise<Users | null> {
         const user = await this.usersService.findByField('username', username);
 
