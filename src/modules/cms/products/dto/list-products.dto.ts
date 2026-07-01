@@ -5,9 +5,11 @@ export class ProductsListDto {
     id: number;
     name: string;
     slug: string;
-    image: string;
+    image: Array<string>;
     status: number;
     unit: string;
+    price: number;
+    current_price: number;
     category: Array<string>;
     created_at: string;
     updated_at: string;
@@ -17,7 +19,9 @@ export class ProductsListDto {
         this.name = pro.name;
         this.slug = pro.slug;
         this.unit = pro.unit;
-        this.image = pro.productImage.filter((img) => img.is_thumbnail == 1)[0].url;
+        this.price = pro.price;
+        this.current_price = pro.current_price;
+        this.image = [pro.productImage.filter((img) => img.is_thumbnail == 1)[0].url];
         this.category = pro.category.map((cate) => cate.name);
         this.status = pro.status;
         this.created_at = pro.created_at ? formatDateTime(pro.created_at) : '';
