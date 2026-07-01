@@ -1,6 +1,7 @@
 import { dateTimeTransformer } from '../common/transformers/date-time.transformer';
 import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { Products } from './products.entity';
+import { Blogs } from './blogs.entity';
 
 @Entity()
 export class Categories {
@@ -74,4 +75,7 @@ export class Categories {
 
     @OneToMany(() => Categories, (category) => category.parent)
     children: Categories[];
+
+    @OneToMany(() => Blogs, (blog) => blog.category)
+    blogs: Blogs[];
 }

@@ -24,7 +24,25 @@ export class BlogsService {
         try {
             const { title, status, pageIndex = 1, pageSize = 20, sort } = payload;
 
-            const queryBuilder = this.blogRepository.createQueryBuilder('blogs');
+            const queryBuilder = this.blogRepository
+                .createQueryBuilder('blogs')
+                .leftJoinAndSelect('blogs.category', 'category')
+                .select([
+                    'blogs.id',
+                    'blogs.title',
+                    'blogs.slug',
+                    'blogs.image',
+                    'blogs.category_id',
+                    'blogs.description',
+                    'blogs.content',
+                    'blogs.meta_title',
+                    'blogs.meta_description',
+                    'blogs.status',
+                    'blogs.created_at',
+                    'blogs.updated_at',
+                    'category.id',
+                    'category.name',
+                ]);
 
             if (sort) {
                 queryBuilder.orderBy(`blogs.${sort.field}`, sort.order.toUpperCase() as 'ASC' | 'DESC');

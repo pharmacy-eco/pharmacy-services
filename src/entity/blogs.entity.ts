@@ -1,5 +1,6 @@
 import { dateTimeTransformer } from '../common/transformers/date-time.transformer';
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Categories } from './categories.entity';
 
 @Entity()
 export class Blogs {
@@ -60,4 +61,8 @@ export class Blogs {
 
     @Column()
     deleted_by: number;
+
+    @ManyToOne(() => Categories, (category) => category.blogs)
+    @JoinColumn({ name: 'category_id' })
+    category: Categories;
 }
