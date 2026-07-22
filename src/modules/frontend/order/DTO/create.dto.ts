@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { PaymentMethodEnum } from '../../../../common/enum';
 
 export class CreateDtoOrder {
     @ApiProperty()
@@ -12,6 +13,12 @@ export class CreateDtoOrder {
 
     @ApiProperty()
     address: string;
+
+    @ApiProperty({ required: false, enum: PaymentMethodEnum, default: PaymentMethodEnum.CASH })
+    payment_method?: PaymentMethodEnum;
+
+    @ApiProperty({ required: false })
+    bankCode?: string;
 
     @ApiProperty()
     cart: ICartPayload[];

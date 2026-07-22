@@ -14,6 +14,10 @@ import { ProductsImage } from '../entity/products_image.entity';
 import { Blogs } from '../entity/blogs.entity';
 import { Banners } from '../entity/banners.entity';
 import { Orders } from '../entity/orders.entity';
+import { OrderDetail } from '../entity/order_detail.entity';
+import { Transaction } from '../entity/transaction.entity';
+import { PaymentHistory } from '../entity/payment_history.entity';
+import { ProductionBatches } from '../entity/production_batches.entity';
 
 const config = {
     type: 'mysql',
@@ -38,6 +42,10 @@ const config = {
         Reviews,
         Banners,
         Orders,
+        OrderDetail,
+        Transaction,
+        PaymentHistory,
+        ProductionBatches,
     ],
     migrations: [__dirname + '/**/database/migrations/*.ts'],
     autoLoadEntities: true,

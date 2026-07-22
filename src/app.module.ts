@@ -17,6 +17,7 @@ import { CategoriesModule } from './modules/cms/categories/categories.module';
 import { BlogsModule } from './modules/cms/blogs/blogs.module';
 import { ProductsModule } from './modules/cms/products/products.module';
 import { ReviewsModule } from './modules/cms/reviews/reviews.module';
+import { OrdersModule } from './modules/cms/orders/orders.module';
 import { FrontendProductsModule } from './modules/frontend/products/products.module';
 import { FrontendBlogsModule } from './modules/frontend/blogs/blogs.module';
 import { BannersModule } from './modules/cms/banners/banners.module';
@@ -24,6 +25,11 @@ import { GeneralModule } from './modules/cms/general/general.module';
 import { FrontendOrdersModule } from './modules/frontend/order/order.module';
 import { FrontendReviewModule } from './modules/frontend/review/review.module';
 import { FrontendSearchModule } from './modules/frontend/search/search.module';
+import { VnpayModule } from './modules/vnpay/vnpay.module';
+import { TransactionModule } from './modules/cms/transaction/transaction.module';
+import { FrontendPaymentModule } from './modules/frontend/payment/payment.module';
+import { ProductionBatchesModule } from './modules/cms/production-batches/production-batches.module';
+import { FrontendCategoriesModule } from './modules/frontend/categories/categories.module';
 @Module({
     imports: [
         //CMS
@@ -33,15 +39,21 @@ import { FrontendSearchModule } from './modules/frontend/search/search.module';
         BlogsModule,
         ProductsModule,
         ReviewsModule,
+        OrdersModule,
         BannersModule,
         GeneralModule,
+        TransactionModule,
+        ProductionBatchesModule,
         //Frontend
         FrontendLayoutModule,
+        FrontendCategoriesModule,
         FrontendProductsModule,
         FrontendBlogsModule,
         FrontendOrdersModule,
         FrontendReviewModule,
         FrontendSearchModule,
+        FrontendPaymentModule,
+        VnpayModule,
 
         //MailerModule
         SendMailModule,
@@ -82,7 +94,7 @@ import { FrontendSearchModule } from './modules/frontend/search/search.module';
     ],
 })
 export class AppModule {
-    constructor() { }
+    constructor() {}
     configure(consumer: MiddlewareConsumer) {
         consumer.apply(AuthMiddleware).forRoutes({ path: '*', method: RequestMethod.ALL });
     }

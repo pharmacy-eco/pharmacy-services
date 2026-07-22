@@ -1,6 +1,9 @@
 import { dateTimeTransformer } from '../common/transformers/date-time.transformer';
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 import { OrderDetail } from './order_detail.entity';
+import { PaymentMethodEnum, PaymentStatusEnum } from '../common/enum';
+import { Transaction } from './transaction.entity';
+import { PaymentHistory } from './payment_history.entity';
 
 @Entity()
 export class Orders {
@@ -24,6 +27,12 @@ export class Orders {
 
     @Column({ default: 2 })
     status: number;
+
+    @Column({ type: 'enum', enum: PaymentMethodEnum, default: PaymentMethodEnum.CASH })
+    payment_method: PaymentMethodEnum;
+
+    @Column({ type: 'enum', enum: PaymentStatusEnum, default: PaymentStatusEnum.PENDING })
+    payment_status: PaymentStatusEnum;
 
     @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', transformer: dateTimeTransformer })
     created_at: Date;
@@ -52,4 +61,10 @@ export class Orders {
 
     @OneToMany(() => OrderDetail, (ordersDetail) => ordersDetail.orders)
     orderDetail: OrderDetail[];
+
+    @OneToMany(() => Transaction, (transaction) => transaction.order)
+    transactions: Transaction[];
+
+    @OneToMany(() => PaymentHistory, (paymentHistory) => paymentHistory.order)
+    paymentHistories: PaymentHistory[];
 }

@@ -52,7 +52,7 @@ export class CategoriesService {
             return pageResult;
         } catch (error) {
             logger.error('Lỗi khi lấy danh sách danh mục.');
-            logger.error(error.stack);
+            logger.error(error);
             return null;
         }
     }
@@ -64,7 +64,7 @@ export class CategoriesService {
             return data;
         } catch (error) {
             logger.error('Lỗi khi lấy danh sách danh mục cha.');
-            logger.error(error.stack);
+            logger.error(error);
             return null;
         }
     }
@@ -76,7 +76,7 @@ export class CategoriesService {
             });
         } catch (error) {
             logger.error('Lỗi lấy chi tiết danh mục');
-            logger.error(error.stack);
+            logger.error(error);
             return null;
         }
     }
@@ -89,6 +89,7 @@ export class CategoriesService {
             const newCategoryWithCreatorInfo = plainToClass(Categories, {
                 ...createNewCategoryDto,
                 slug: slug,
+                parent_id: createNewCategoryDto.parent_id || 0,
                 created_by: currentUser?.id,
                 updated_by: currentUser?.id,
             });
@@ -100,7 +101,7 @@ export class CategoriesService {
             return categoryWithoutSensitiveData;
         } catch (error) {
             logger.error('Lỗi khi tạo mới danh mục.');
-            logger.error(error.stack);
+            logger.error(error);
             return null;
         }
     }
@@ -123,7 +124,7 @@ export class CategoriesService {
             return savedCat;
         } catch (error) {
             logger.error('Lỗi khi cập nhật category.');
-            logger.error(error.stack);
+            logger.error(error);
             return null;
         }
     }
@@ -133,7 +134,7 @@ export class CategoriesService {
             await this.categoryRepository.delete(id);
         } catch (error) {
             logger.error('Lỗi khi xóa danh mục');
-            logger.error(error.stack);
+            logger.error(error);
             return null;
         }
     }

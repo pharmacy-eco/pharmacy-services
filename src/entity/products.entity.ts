@@ -1,8 +1,19 @@
 import { dateTimeTransformer } from '../common/transformers/date-time.transformer';
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToMany, JoinTable, OneToOne } from 'typeorm';
+import {
+    Entity,
+    PrimaryGeneratedColumn,
+    Column,
+    OneToMany,
+    ManyToMany,
+    JoinTable,
+    OneToOne,
+    ManyToOne,
+    JoinColumn,
+} from 'typeorm';
 import { ProductsImage } from './products_image.entity';
 import { Categories } from './categories.entity';
 import { OrderDetail } from './order_detail.entity';
+import { ProductionBatches } from './production_batches.entity';
 
 @Entity()
 export class Products {
@@ -35,6 +46,9 @@ export class Products {
 
     @Column({ nullable: true, default: 0 })
     is_hot: number;
+
+    @Column({ type: 'bigint', unsigned: true, nullable: true })
+    production_batch_id: number;
 
     @Column({ nullable: true })
     meta_description: string;
@@ -92,4 +106,8 @@ export class Products {
 
     @OneToOne(() => OrderDetail, (orderDetail) => orderDetail.products)
     orderDetail: OrderDetail;
+
+    @ManyToOne(() => ProductionBatches, (productionBatch) => productionBatch.products, { nullable: true })
+    @JoinColumn({ name: 'production_batch_id' })
+    productionBatch: ProductionBatches;
 }

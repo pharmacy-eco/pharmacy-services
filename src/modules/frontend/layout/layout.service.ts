@@ -69,7 +69,7 @@ export class LayoutService {
             return data;
         } catch (error) {
             logger.error('Lỗi khi lấy dữ liệu layout.');
-            logger.error(error.stack);
+            logger.error(error);
             return null;
         }
     }
@@ -108,17 +108,32 @@ export class LayoutService {
                 take: 4,
             });
 
-            const category = await this.categoriesRepository
+            const categoryResult = await this.categoriesRepository
                 .createQueryBuilder('categories')
-                .leftJoin('categories.product', 'product')
+                .addSelect((countQuery) => {
+                    return countQuery
+                        .select('COUNT(DISTINCT productCategory.product_id)')
+                        .from('products_has_categories', 'productCategory')
+                        .innerJoin('products', 'activeProduct', 'activeProduct.id = productCategory.product_id')
+                        .where('productCategory.category_id = categories.id')
+                        .andWhere('activeProduct.status = :productStatus');
+                }, 'countProduct')
                 .where('categories.is_hot = :isHot', { isHot: 1 })
-                .loadRelationCountAndMap('categories.productCount', 'categories.product')
-                .getMany();
+                .andWhere('categories.status = :status', { status: 1 })
+                .andWhere('categories.type = :type', { type: 'PRODUCT' })
+                .setParameter('productStatus', 1)
+                .getRawAndEntities();
+
+            const category = categoryResult.entities.map((item, index) => {
+                item.countProduct = Number(categoryResult.raw[index]?.countProduct ?? 0);
+                return item;
+            });
 
             const brands = await this.categoriesRepository.find({
                 select: ['id', 'image', 'name', 'meta_name', 'slug'],
                 where: { status: 1, type: 'BRAND' },
             });
+
             const data = {
                 product: products,
                 banner: banner,
@@ -129,7 +144,7 @@ export class LayoutService {
             return data;
         } catch (error) {
             logger.error('Lỗi khi lấy dữ liệu trang chủ.');
-            logger.error(error.stack);
+            logger.error(error);
             return null;
         }
     }
@@ -157,7 +172,7 @@ export class LayoutService {
             return data;
         } catch (error) {
             logger.error('Lỗi khi lấy dữ liệu trang giới thiệu.');
-            logger.error(error.stack);
+            logger.error(error);
             return null;
         }
     }

@@ -69,6 +69,8 @@ export class Categories {
     @ManyToMany(() => Products, (product) => product.category)
     product: Products[];
 
+    countProduct: number;
+
     @ManyToOne(() => Categories, (category) => category.children, { nullable: true })
     @JoinColumn({ name: 'parent_id' })
     parent: Categories;
