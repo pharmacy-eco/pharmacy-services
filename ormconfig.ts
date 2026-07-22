@@ -12,6 +12,10 @@ import { ProductsImage } from './src/entity/products_image.entity';
 import { Blogs } from './src/entity/blogs.entity';
 import { Products } from './src/entity/products.entity';
 import { Orders } from './src/entity/orders.entity';
+import { OrderDetail } from './src/entity/order_detail.entity';
+import { Transaction } from './src/entity/transaction.entity';
+import { PaymentHistory } from './src/entity/payment_history.entity';
+import { ProductionBatches } from './src/entity/production_batches.entity';
 
 console.log(process.env, '123123');
 
@@ -36,6 +40,10 @@ export default new DataSource({
         ProductsImage,
         Blogs,
         Orders,
+        OrderDetail,
+        Transaction,
+        PaymentHistory,
+        ProductionBatches,
     ],
     migrations: [__dirname + '/**/*/database/migrations/*.ts'],
     synchronize: false, // Để false để tránh tự động tạo bảng khi không dùng migration tránh mất toàn bộ dữ liệu

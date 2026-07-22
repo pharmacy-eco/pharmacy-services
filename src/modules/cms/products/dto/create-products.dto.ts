@@ -20,6 +20,10 @@ export class CreateProductsDto {
     @ApiProperty({ example: 'Chai, Hộp ', default: 'Hộp' })
     unit: string;
 
+    @IsNotEmpty({ message: 'Lô sản xuất không được để trống' })
+    @ApiProperty()
+    production_batch_id: number;
+
     @IsNotEmpty({ message: 'Ảnh sản phẩm không được để trống' })
     @ApiProperty()
     image: Array<string>;

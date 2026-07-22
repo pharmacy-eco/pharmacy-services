@@ -14,6 +14,7 @@ import { Products } from '../../../entity/products.entity';
 import { ProductsImage } from '../../../entity/products_image.entity';
 import { Categories } from '../../../entity/categories.entity';
 import { formatSlug } from '../../../utils/toslug.util';
+import { ProductionBatches } from '../../../entity/production_batches.entity';
 
 @Injectable({ scope: Scope.REQUEST })
 export class ProductsService {
@@ -24,6 +25,8 @@ export class ProductsService {
         private poductsImageRepository: Repository<ProductsImage>,
         @InjectRepository(Categories)
         private categoriesRepository: Repository<Categories>,
+        @InjectRepository(ProductionBatches)
+        private productionBatchesRepository: Repository<ProductionBatches>,
         @Inject(REQUEST) private readonly request: CustomRequest,
     ) {}
     async findAll(payload: FilterProductsDto) {
@@ -34,6 +37,7 @@ export class ProductsService {
                 .createQueryBuilder('products')
                 .leftJoinAndSelect('products.category', 'category')
                 .leftJoinAndSelect('products.productImage', 'productImage')
+                .leftJoinAndSelect('products.productionBatch', 'productionBatch')
                 .select([
                     'products.id',
                     'products.name',
@@ -43,11 +47,14 @@ export class ProductsService {
                     'products.status',
                     'products.updated_at',
                     'products.unit',
+                    'products.production_batch_id',
                     'productImage.id',
                     'productImage.url',
                     'productImage.is_thumbnail',
                     'category.id',
                     'category.name',
+                    'productionBatch.id',
+                    'productionBatch.name',
                 ]);
 
             queryBuilder.where('productImage.is_thumbnail = :is_thumbnail', { is_thumbnail: 1 });
@@ -87,7 +94,14 @@ export class ProductsService {
                 .createQueryBuilder('products')
                 .leftJoinAndSelect('products.productImage', 'productImage')
                 .leftJoinAndSelect('products.category', 'category')
+                .leftJoinAndSelect('products.productionBatch', 'productionBatch')
                 .select(['products.*', 'productImage.id', 'productImage.url', 'category.id', 'category.name'])
+                .addSelect('productionBatch.id', 'production_batch_id')
+                .addSelect('productionBatch.name', 'production_batch_name')
+                .addSelect('productionBatch.manufacturing_date', 'production_batch_manufacturing_date')
+                .addSelect('productionBatch.expiration_date', 'production_batch_expiration_date')
+                .addSelect('productionBatch.quantity', 'production_batch_quantity')
+                .addSelect('productionBatch.production_place', 'production_batch_production_place')
                 .where('products.id = :id', { id: id })
                 .getRawOne();
 
@@ -95,6 +109,16 @@ export class ProductsService {
             dataOne = {
                 ...dataOne,
                 optionals: optionals,
+                production_batch: dataOne?.production_batch_id
+                    ? {
+                          id: dataOne.production_batch_id,
+                          name: dataOne.production_batch_name,
+                          manufacturing_date: dataOne.production_batch_manufacturing_date,
+                          expiration_date: dataOne.production_batch_expiration_date,
+                          quantity: dataOne.production_batch_quantity,
+                          production_place: dataOne.production_batch_production_place,
+                      }
+                    : null,
             };
 
             return dataOne;
@@ -122,10 +146,19 @@ export class ProductsService {
             const { image, ...newProductsPayload } = createProductsDto;
 
             const categories = await this.categoriesRepository.find({ where: { id: In(createProductsDto.category) } });
+            const productionBatch = await this.productionBatchesRepository.findOne({
+                where: { id: createProductsDto.production_batch_id },
+            });
+
+            if (!productionBatch) {
+                logger.error('Lô sản xuất không tồn tại.');
+                return null;
+            }
 
             const newProduct = plainToClass(Products, {
                 ...newProductsPayload,
                 category: categories,
+                productionBatch: productionBatch,
                 slug: slug,
                 // optionals: optionalsJson,
                 created_by: currentUser?.id,
@@ -177,6 +210,14 @@ export class ProductsService {
             const slug = formatSlug(productDto.name);
 
             const categories = await this.categoriesRepository.find({ where: { id: In(productDto.category) } });
+            const productionBatch = await this.productionBatchesRepository.findOne({
+                where: { id: productDto.production_batch_id },
+            });
+
+            if (!productionBatch) {
+                logger.error('Lô sản xuất không tồn tại.');
+                return null;
+            }
 
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { image, ...newProductsPayload } = productDto;
@@ -186,6 +227,7 @@ export class ProductsService {
                 ...newProductsPayload,
                 slug: slug,
                 category: categories,
+                productionBatch: productionBatch,
                 optionals: optionalsJson,
                 updated_by: currentUser?.id,
             });
