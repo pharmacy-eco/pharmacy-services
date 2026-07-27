@@ -6,12 +6,16 @@ export class ResigerUserDto {
     @ApiProperty()
     name: string;
 
+    @IsNotEmpty({ message: 'Địa chỉ không được để trống' })
+    @ApiProperty()
+    address: string;
+
     @ApiProperty()
     email: string;
 
-    @IsNotEmpty({ message: 'Tài khoản không được để trống' })
+    @IsNotEmpty({ message: 'Số điện thoại không được để trống' })
     @ApiProperty()
-    username: string;
+    phone: string;
 
     @IsNotEmpty({ message: 'Mật khẩu không được để trống' })
     @ApiProperty()

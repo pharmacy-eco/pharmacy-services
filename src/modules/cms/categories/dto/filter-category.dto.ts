@@ -3,7 +3,7 @@ import { SortOption } from '../../../../common/types/sort.type';
 
 export class FilterCategoryDto {
     @ApiProperty({ required: false })
-    name: string;
+    keyword: string;
 
     @ApiProperty({ required: false })
     status: number;

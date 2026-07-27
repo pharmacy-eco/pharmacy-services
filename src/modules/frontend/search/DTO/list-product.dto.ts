@@ -22,7 +22,10 @@ export class ListProductDto {
         this.unit = pro.unit;
         this.price = pro.price;
         this.curent_price = pro.current_price;
-        this.thumbnail = pro.productImage ? pro.productImage.filter((img) => img.is_thumbnail == 1)[0].url : '';
+        this.thumbnail =
+            pro.productImage && pro.productImage.length > 0
+                ? pro.productImage.filter((img) => img.is_thumbnail == 1)[0].url
+                : '';
         this.status = pro.status;
     }
 }

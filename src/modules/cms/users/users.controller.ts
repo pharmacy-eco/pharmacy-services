@@ -112,7 +112,7 @@ export class UsersController {
     @UsePipes(new CustomValidationPipe())
     async registerUser(@Body() resigerUserDto: ResigerUserDto, @RequestInfo() requestInfo: IRequestInfo) {
         //@@@ kiểm tra tồn tại
-        await this.checkExistingFields(resigerUserDto.username, null);
+        await this.checkExistingFields(resigerUserDto.phone, null);
 
         const createdUser = await this.usersService.registerUser(resigerUserDto);
         if (createdUser) {

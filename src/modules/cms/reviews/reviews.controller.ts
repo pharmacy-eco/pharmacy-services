@@ -9,6 +9,7 @@ import {
     Body,
     UsePipes,
     Delete,
+    Put,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { LoggingInterceptor } from '../../../common/interceptors/logging.interceptor';
@@ -82,6 +83,38 @@ export class ReviewsController {
             return this.responseService.createResponse(
                 201,
                 'Thêm mới thành công',
+                requestInfo.requestId,
+                requestInfo.at,
+                data,
+            );
+        } else {
+            return this.responseService.createResponse(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                'Lỗi không xác định. Vui lòng thử lại sau',
+                requestInfo.requestId,
+                requestInfo.at,
+            );
+        }
+    }
+
+    @Put('status/:id')
+    @ApiOperation({ summary: 'Cập nhật trạng thái đánh giá' })
+    async changeStatus(@Param('id') id: number, @RequestInfo() requestInfo: IRequestInfo) {
+        const review = await this.reviewsService.findOne(id);
+        if (!review) {
+            return this.responseService.createResponse(
+                404,
+                'đánh giá không tồn tại',
+                requestInfo.requestId,
+                requestInfo.at,
+            );
+        }
+
+        const data = await this.reviewsService.changeStatus(id);
+        if (data) {
+            return this.responseService.createResponse(
+                200,
+                'Cập nhật trạng thái đánh giá thành công',
                 requestInfo.requestId,
                 requestInfo.at,
                 data,

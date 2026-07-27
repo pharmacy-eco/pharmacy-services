@@ -69,7 +69,7 @@ export class SearchService {
             return pageResult;
         } catch (error) {
             logger.error('Lỗi khi lấy danh sách sản phẩm theo tìm kiếm.');
-            logger.error(error.stack);
+            logger.error(error);
             return null;
         }
     }

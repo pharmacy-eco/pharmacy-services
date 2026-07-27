@@ -1,7 +1,7 @@
 import { Inject, Injectable, Scope, NotFoundException } from '@nestjs/common';
 import { REQUEST } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Brackets, Repository } from 'typeorm';
 import logger from '../../../common/logger';
 import { CustomRequest } from '../../../interfaces/custom-request.interface';
 import { PageBase } from '../../../common/response/response-page-base';
@@ -20,7 +20,7 @@ export class ReviewsService {
     ) {}
     async findAll(payload: FilterReviewsDto) {
         try {
-            const { name, product_id, status, pageIndex = 1, pageSize = 20, sort } = payload;
+            const { keyword, product_id, status, pageIndex = 1, pageSize = 20, sort } = payload;
 
             const queryBuilder = this.reviewsRepository
                 .createQueryBuilder('reviews')
@@ -43,7 +43,16 @@ export class ReviewsService {
                 queryBuilder.orderBy(`reviews.id`, 'DESC');
             }
 
-            if (name) queryBuilder.andWhere('reviews.name LIKE :name', { name: `%${name}%` });
+            if (keyword) {
+                queryBuilder.andWhere(
+                    new Brackets((qb) => {
+                        qb.where('reviews.name LIKE :keyword', { keyword: `%${keyword}%` }).orWhere(
+                            'reviews.content LIKE :keyword',
+                            { keyword: `%${keyword}%` },
+                        );
+                    }),
+                );
+            }
 
             if (product_id) queryBuilder.andWhere('reviews.product_id = :product_id', { product_id });
 
@@ -63,7 +72,7 @@ export class ReviewsService {
             return pageResult;
         } catch (error) {
             logger.error('Lỗi khi lấy danh sách.');
-            logger.error(error.stack);
+            logger.error(error);
             return null;
         }
     }
@@ -79,7 +88,7 @@ export class ReviewsService {
             return review ? new ReviewsListDto(review) : null;
         } catch (error) {
             logger.error('Lỗi lấy chi tiết');
-            logger.error(error.stack);
+            logger.error(error);
             return null;
         }
     }
@@ -98,7 +107,28 @@ export class ReviewsService {
             return savedData;
         } catch (error) {
             logger.error('Lỗi khi tạo mới.');
-            logger.error(error.stack);
+            logger.error(error);
+            return null;
+        }
+    }
+
+    async changeStatus(id: number) {
+        try {
+            const oneData = await this.reviewsRepository.findOne({ where: { id } });
+            if (!oneData) {
+                throw new NotFoundException(`Không tìm thấy dữ liệu với ID ${id}`);
+            }
+
+            const dataUpdate = plainToClass(Reviews, {
+                ...oneData,
+                status: oneData.status == 1 ? 2 : 1,
+            });
+            const savedData = await this.reviewsRepository.save(dataUpdate);
+
+            return new ReviewsListDto(savedData);
+        } catch (error) {
+            logger.error('Lỗi khi cập nhật trạng thái.');
+            logger.error(error);
             return null;
         }
     }
@@ -119,7 +149,7 @@ export class ReviewsService {
             await this.reviewsRepository.save(dataUpdate);
         } catch (error) {
             logger.error('Lỗi khi xóa.');
-            logger.error(error.stack);
+            logger.error(error);
             return null;
         }
     }

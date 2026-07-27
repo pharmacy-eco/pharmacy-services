@@ -35,6 +35,7 @@ export class UsersService {
                     'users.fullname as fullname',
                     'users.username as username',
                     'users.email as email',
+                    'users.address as address',
                     'users.status as status',
                     'users.avatar as avatar',
                     'users.role_id as role_id',
@@ -76,7 +77,18 @@ export class UsersService {
         try {
             return await this.userRepository.findOne({
                 where: { id },
-                select: ['id', 'username', 'email', 'phone', 'avatar', 'username', 'password', 'status', 'role_id'],
+                select: [
+                    'id',
+                    'fullname',
+                    'username',
+                    'email',
+                    'phone',
+                    'address',
+                    'avatar',
+                    'password',
+                    'status',
+                    'role_id',
+                ],
             });
         } catch (error) {
             logger.error('Lỗi lấy chi tiết người dùng.');
@@ -160,9 +172,15 @@ export class UsersService {
 
     async registerUser(resigerUserDto: ResigerUserDto) {
         try {
+            const { name, phone, ...registerData } = resigerUserDto;
             const hashedPassword = await bcrypt.hash(resigerUserDto.password, this.saltOrRounds);
             const newUserWithHashedPassword = {
-                ...resigerUserDto,
+                ...registerData,
+                fullname: name,
+                username: phone,
+                phone,
+                role_id: 1,
+                status: 1,
                 password: hashedPassword,
             };
             const savedUser = await this.userRepository.save(newUserWithHashedPassword);
@@ -172,8 +190,7 @@ export class UsersService {
 
             return userWithoutPassword;
         } catch (error) {
-            console.log(error, 'error');
-            logger.error('Đăng ký tài khoản thành công.');
+            logger.error('Lỗi khi đăng ký tài khoản.');
             logger.error(error.stack);
             return null;
         }
