@@ -22,7 +22,7 @@ export class CategoriesService {
     ) {}
     async findAll(payload: FilterCategoryDto) {
         try {
-            const { name, status, pageIndex = 1, pageSize = 20, sort, parent_id } = payload;
+            const { keyword, status, pageIndex = 1, pageSize = 20, sort, parent_id } = payload;
 
             const queryBuilder = this.categoryRepository.createQueryBuilder('categories');
             queryBuilder.leftJoinAndSelect('categories.parent', 'parentCategory');
@@ -33,7 +33,7 @@ export class CategoriesService {
                 queryBuilder.orderBy(`categories.id`, 'DESC');
             }
 
-            if (name) queryBuilder.andWhere('categories.name LIKE :name', { name: `%${name}%` });
+            if (keyword) queryBuilder.andWhere('categories.name LIKE :keyword', { keyword: `%${keyword}%` });
 
             if (parent_id) queryBuilder.andWhere('categories.parent_id = :parent_id', { parent_id: parent_id });
 

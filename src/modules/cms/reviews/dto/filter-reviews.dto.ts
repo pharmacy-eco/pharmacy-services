@@ -4,7 +4,7 @@ import { IStatusEnum } from '../../../../common/enum';
 
 export class FilterReviewsDto {
     @ApiProperty({ required: false })
-    name: string;
+    keyword: string;
 
     @ApiProperty({ required: false })
     product_id: number;

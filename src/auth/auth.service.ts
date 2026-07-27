@@ -27,8 +27,8 @@ export class AuthService {
         private roleRepository: Repository<Roles>,
         @InjectRepository(RoleHasPermissions)
         private rolehasRepository: Repository<RoleHasPermissions>,
-    ) { }
-    async validateUser(username: string, password: string): Promise<Users | null> {
+    ) {}
+    async validateUser(username: string, password: string, roleId = 0): Promise<Users | null> {
         const user = await this.usersService.findByField('username', username);
 
         if (!user) {
@@ -37,7 +37,7 @@ export class AuthService {
 
         const passwordValid = await bcrypt.compare(password, user.password);
 
-        if (user && passwordValid && user.status === 1) {
+        if (user && passwordValid && user.status === 1 && Number(user.role_id) === roleId) {
             return {
                 ...user,
             };

@@ -11,6 +11,8 @@ import {
     HttpStatus,
     BadRequestException,
     Put,
+    ConflictException,
+    UsePipes,
 } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -24,6 +26,9 @@ import { ProfileDto } from './dto/profile.dto';
 import { LocalAuthGuard } from './passport/local-auth.guard';
 import { Public } from './decorators/jwt.decorators';
 import { IRequestInfo } from '../common/types';
+import { LoginDto } from './dto/login.dto';
+import { ResigerUserDto } from '../modules/cms/users/dto/register-user.dto';
+import { CustomValidationPipe } from '../common/custom-validation-pipe';
 
 @Controller()
 export class AuthController {
@@ -38,6 +43,43 @@ export class AuthController {
     @Post('login')
     async handlelogin(@Request() req) {
         return this.authService.login(req.user);
+    }
+
+    @Public()
+    @Post('user/login')
+    @UsePipes(new CustomValidationPipe())
+    async handleUserLogin(@Body() loginDto: LoginDto) {
+        const user = await this.authService.validateUser(loginDto.username, loginDto.password, 1);
+        if (!user) {
+            throw new UnauthorizedException('Tài khoản hoặc mật khẩu không trùng khớp!');
+        }
+
+        return this.authService.login(user);
+    }
+
+    @Public()
+    @Post('user/register')
+    @UsePipes(new CustomValidationPipe())
+    async registerUser(@Body() resigerUserDto: ResigerUserDto, @RequestInfo() requestInfo: IRequestInfo) {
+        await this.checkExistingFields(resigerUserDto.phone, resigerUserDto.email, resigerUserDto.phone);
+
+        const createdUser = await this.userService.registerUser(resigerUserDto);
+        if (createdUser) {
+            return this.responseService.createResponse(
+                HttpStatus.CREATED,
+                'Đăng ký thành công',
+                requestInfo.requestId,
+                requestInfo.at,
+                createdUser,
+            );
+        }
+
+        return this.responseService.createResponse(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            'Lỗi không xác định. Vui lòng thử lại sau',
+            requestInfo.requestId,
+            requestInfo.at,
+        );
     }
 
     @Get('profile')
@@ -130,5 +172,30 @@ export class AuthController {
 
         const token = authHeader.split(' ')[1];
         return this.authService.decodeToken(token);
+    }
+
+    private async checkExistingFields(username: string, email: string, phone?: string) {
+        const [existingUser, existingEmail, existingPhone] = await Promise.all([
+            this.userService.findByField('username', username),
+            this.userService.findByField('email', email),
+            phone ? this.userService.findByField('phone', phone) : Promise.resolve(null),
+        ]);
+
+        const errors: Record<string, string> = {};
+        if (existingUser) {
+            errors['username'] = 'Tài khoản đã tồn tại';
+        }
+        if (existingEmail) {
+            errors['email'] = 'Email đã tồn tại';
+        }
+        if (existingPhone) {
+            errors['phone'] = 'Số điện thoại đã tồn tại';
+        }
+
+        if (Object.keys(errors).length > 0) {
+            throw new ConflictException({
+                message: [errors],
+            });
+        }
     }
 }

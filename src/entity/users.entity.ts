@@ -12,7 +12,7 @@ export class Users {
     @Column({ default: 1 })
     gender: number;
 
-    @Column()
+    @Column({ nullable: true })
     address: string;
 
     @Column()
