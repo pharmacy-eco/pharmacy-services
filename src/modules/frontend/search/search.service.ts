@@ -1,7 +1,7 @@
 import { Inject, Injectable, Scope } from '@nestjs/common';
 import { REQUEST } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Brackets, Repository } from 'typeorm';
 import logger from '../../../common/logger';
 import { CustomRequest } from '../../../interfaces/custom-request.interface';
 import { Products } from '../../../entity/products.entity';
@@ -25,21 +25,40 @@ export class SearchService {
                 .createQueryBuilder('product')
                 .leftJoinAndSelect('product.productImage', 'productImage')
                 .leftJoinAndSelect('product.category', 'category')
+                .leftJoinAndSelect('product.productionBatch', 'productionBatch')
                 .select([
                     'product.id',
                     'product.name',
                     'product.meta_name',
+                    'product.meta_description',
                     'product.slug',
                     'product.unit',
+                    'product.description',
+                    'product.content',
+                    'product.optionals',
                     'product.price',
                     'product.current_price',
+                    'product.is_hot',
+                    'product.status',
+                    'product.production_batch_id',
+                    'product.created_at',
+                    'product.updated_at',
                     'productImage.id',
                     'productImage.url',
                     'productImage.is_thumbnail',
                     'category.id',
                     'category.name',
                     'category.slug',
-                ]);
+                    'productionBatch.id',
+                    'productionBatch.name',
+                    'productionBatch.manufacturing_date',
+                    'productionBatch.expiration_date',
+                    'productionBatch.quantity',
+                    'productionBatch.production_place',
+                    'productionBatch.status',
+                ])
+                .where('product.status = :status', { status: 1 })
+                .distinct(true);
 
             if (sort) {
                 queryBuilder.orderBy(`product.${sort.field}`, sort.order.toUpperCase() as 'ASC' | 'DESC');
@@ -47,18 +66,24 @@ export class SearchService {
                 queryBuilder.orderBy(`product.id`, 'DESC');
             }
 
-            if (keyword)
-                queryBuilder
-                    .andWhere('product.name LIKE :keyword', { keyword: `%${keyword}%` })
-                    .orWhere('product.description LIKE :keyword', { keyword: `%${keyword}%` });
+            if (keyword) {
+                queryBuilder.andWhere(
+                    new Brackets((qb) => {
+                        qb.where('product.name LIKE :keyword', { keyword: `%${keyword}%` }).orWhere(
+                            'product.description LIKE :keyword',
+                            { keyword: `%${keyword}%` },
+                        );
+                    }),
+                );
+            }
 
             if (slug) queryBuilder.andWhere('category.slug = :slug', { slug });
             if (category_id) queryBuilder.andWhere('category.id = :category_id', { category_id });
 
             const [entities, totalItems] = await Promise.all([
                 queryBuilder
-                    .offset((page_index - 1) * page_size)
-                    .limit(page_size)
+                    .skip((page_index - 1) * page_size)
+                    .take(page_size)
                     .getMany(),
                 queryBuilder.getCount(),
             ]);

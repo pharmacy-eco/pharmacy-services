@@ -62,6 +62,21 @@ export class ProductionBatchesService {
         }
     }
 
+    async findSelectOptions() {
+        try {
+            const batches = await this.productionBatchesRepository.find({
+                where: { status: 1 },
+                order: { id: 'DESC' },
+            });
+
+            return batches.map((batch) => new ProductionBatchListDto(batch));
+        } catch (error) {
+            logger.error('Lỗi khi lấy danh sách chọn lô sản xuất.');
+            logger.error(error.stack);
+            return null;
+        }
+    }
+
     async create(createDto: CreateProductionBatchDto) {
         try {
             const currentUser = this.request.user;

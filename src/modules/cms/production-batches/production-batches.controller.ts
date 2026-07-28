@@ -53,6 +53,28 @@ export class ProductionBatchesController {
         );
     }
 
+    @Get('select')
+    @ApiOperation({ summary: 'Danh sách lô sản xuất cho select' })
+    async findSelectOptions(@RequestInfo() requestInfo: IRequestInfo) {
+        const data = await this.productionBatchesService.findSelectOptions();
+        if (data) {
+            return this.responseService.createResponse(
+                200,
+                'Lấy danh sách thành công',
+                requestInfo.requestId,
+                requestInfo.at,
+                data,
+            );
+        }
+
+        return this.responseService.createResponse(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            'Lỗi không xác định. Vui lòng thử lại sau',
+            requestInfo.requestId,
+            requestInfo.at,
+        );
+    }
+
     @Get(':id')
     @ApiOperation({ summary: 'Chi tiết lô sản xuất' })
     async findOne(@Param('id') id: number, @RequestInfo() requestInfo: IRequestInfo) {

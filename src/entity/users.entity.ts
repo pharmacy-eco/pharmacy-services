@@ -15,6 +15,9 @@ export class Users {
     @Column({ nullable: true })
     address: string;
 
+    @Column({ type: 'date', nullable: true })
+    birthday: Date | string;
+
     @Column()
     username: string;
 

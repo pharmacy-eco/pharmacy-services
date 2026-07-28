@@ -3,19 +3,21 @@ import { formatDateTime } from '../../../../utils/datetime.util';
 
 class OrderDetailListDto {
     id: number;
-    product_id: string;
+    product_id: number;
     product_name: string;
     quantity: number;
     price: number;
     total_price: number;
+    image: string;
 
     constructor(detail) {
         this.id = detail.id;
-        this.product_id = detail.product_id;
+        this.product_id = Number(detail.product_id);
         this.product_name = detail.products?.name || '';
         this.quantity = detail.quantity;
         this.price = detail.price;
         this.total_price = Number(detail.quantity || 0) * Number(detail.price || 0);
+        this.image = detail.products?.productImage?.find((image) => Number(image.is_thumbnail) === 1)?.url || null;
     }
 }
 

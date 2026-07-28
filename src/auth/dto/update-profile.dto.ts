@@ -1,13 +1,21 @@
-// src/users/dto/change-password.dto.ts
-import { IsString } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator';
 
 export class UpdateProfileDto {
     @IsString()
-    name: string;
+    fullname: string;
 
+    @IsString()
+    phone: string;
+
+    @IsOptional()
     @IsString()
     email: string;
 
+    @IsOptional()
     @IsString()
-    image: string;
+    address: string;
+
+    @IsOptional()
+    @IsString()
+    birthday: string;
 }

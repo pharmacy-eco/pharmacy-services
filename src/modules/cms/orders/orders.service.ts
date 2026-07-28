@@ -10,12 +10,15 @@ import { Orders } from '../../../entity/orders.entity';
 import { FilterOrdersDto } from './dto/filter-orders.dto';
 import { OrdersListDto } from './dto/list-orders.dto';
 import { UpdateOrdersDto } from './dto/update-orders.dto';
+import { Users } from '../../../entity/users.entity';
 
 @Injectable({ scope: Scope.REQUEST })
 export class OrdersService {
     constructor(
         @InjectRepository(Orders)
         private ordersRepository: Repository<Orders>,
+        @InjectRepository(Users)
+        private usersRepository: Repository<Users>,
         @Inject(REQUEST) private readonly request: CustomRequest,
     ) {}
 
@@ -29,15 +32,30 @@ export class OrdersService {
                 status,
                 payment_method,
                 payment_status,
-                pageIndex = 1,
-                pageSize = 20,
+                pageIndex,
+                pageSize,
+                page,
+                page_size,
                 sort,
             } = payload;
+            const currentPage = Number(page || pageIndex || 1);
+            const currentPageSize = Number(page_size || pageSize || 20);
 
             const queryBuilder = this.ordersRepository
                 .createQueryBuilder('orders')
                 .leftJoinAndSelect('orders.orderDetail', 'orderDetail')
-                .leftJoinAndSelect('orderDetail.products', 'products');
+                .leftJoinAndSelect('orderDetail.products', 'products')
+                .leftJoinAndSelect('products.productImage', 'productImage', 'productImage.is_thumbnail = :isThumbnail', {
+                    isThumbnail: 1,
+                });
+
+            const currentUser = await this.getCurrentUser();
+            if (Number(currentUser?.role_id) === 1) {
+                queryBuilder.andWhere('(orders.phone = :phone OR orders.phone = :username)', {
+                    phone: currentUser.phone,
+                    username: currentUser.username,
+                });
+            }
 
             if (sort) {
                 const sortFieldMap = {
@@ -76,15 +94,15 @@ export class OrdersService {
 
             const [entities, totalItems] = await Promise.all([
                 queryBuilder
-                    .offset((pageIndex - 1) * pageSize)
-                    .limit(pageSize)
+                    .offset((currentPage - 1) * currentPageSize)
+                    .limit(currentPageSize)
                     .getMany(),
                 queryBuilder.getCount(),
             ]);
 
             const data = entities.map((order) => new OrdersListDto(order));
 
-            return new PageBase(pageIndex, pageSize, totalItems, data);
+            return new PageBase(currentPage, currentPageSize, totalItems, data);
         } catch (error) {
             logger.error('Lỗi khi lấy danh sách đơn hàng.');
             logger.error(error.stack);
@@ -98,6 +116,9 @@ export class OrdersService {
                 .createQueryBuilder('orders')
                 .leftJoinAndSelect('orders.orderDetail', 'orderDetail')
                 .leftJoinAndSelect('orderDetail.products', 'products')
+                .leftJoinAndSelect('products.productImage', 'productImage', 'productImage.is_thumbnail = :isThumbnail', {
+                    isThumbnail: 1,
+                })
                 .where('orders.id = :id', { id })
                 .getOne();
 
@@ -107,6 +128,18 @@ export class OrdersService {
             logger.error(error.stack);
             return null;
         }
+    }
+
+    private async getCurrentUser() {
+        const requestUser = this.request.user;
+        if (!requestUser?.id) {
+            return null;
+        }
+
+        return this.usersRepository.findOne({
+            where: { id: requestUser.id },
+            select: ['id', 'role_id', 'phone', 'username'],
+        });
     }
 
     async update(id: number, updateDto: UpdateOrdersDto) {

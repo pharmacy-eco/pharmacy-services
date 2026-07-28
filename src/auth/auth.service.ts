@@ -100,7 +100,7 @@ export class AuthService {
     }
 
     async updateProfile(updateProfileDto: UpdateProfileDto) {
-        const { email, image } = updateProfileDto;
+        const { fullname, phone, email, address, birthday } = updateProfileDto;
 
         const currentUser = this.request.user;
 
@@ -108,10 +108,17 @@ export class AuthService {
         if (!user) {
             throw new NotFoundException('Không tìm thấy người dùng');
         }
-        // user. = name;
+        user.fullname = fullname;
+        user.phone = phone;
+        user.username = phone;
         user.email = email;
-        user.avatar = image;
+        user.address = address;
+        user.birthday = birthday || null;
 
-        await this.userRepository.save(user);
+        const savedUser = await this.userRepository.save(user);
+
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { password, ...userWithoutPassword } = savedUser;
+        return userWithoutPassword;
     }
 }
