@@ -84,6 +84,7 @@ export class UsersService {
                     'email',
                     'phone',
                     'address',
+                    'birthday',
                     'avatar',
                     'password',
                     'status',

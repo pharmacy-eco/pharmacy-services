@@ -108,6 +108,8 @@ export class LayoutService {
                 take: 4,
             });
 
+            console.log(blogs);
+
             const categoryResult = await this.categoriesRepository
                 .createQueryBuilder('categories')
                 .addSelect((countQuery) => {

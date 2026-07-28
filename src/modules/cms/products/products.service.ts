@@ -36,15 +36,24 @@ export class ProductsService {
             const queryBuilder = this.productsRepository
                 .createQueryBuilder('products')
                 .leftJoinAndSelect('products.category', 'category')
-                .leftJoinAndSelect('products.productImage', 'productImage')
+                .leftJoinAndSelect('products.productImage', 'productImage', 'productImage.is_thumbnail = :is_thumbnail', {
+                    is_thumbnail: 1,
+                })
                 .leftJoinAndSelect('products.productionBatch', 'productionBatch')
                 .select([
                     'products.id',
                     'products.name',
                     'products.slug',
+                    'products.description',
+                    'products.content',
+                    'products.meta_name',
+                    'products.meta_description',
+                    'products.optionals',
                     'products.price',
                     'products.current_price',
+                    'products.is_hot',
                     'products.status',
+                    'products.created_at',
                     'products.updated_at',
                     'products.unit',
                     'products.production_batch_id',
@@ -53,11 +62,15 @@ export class ProductsService {
                     'productImage.is_thumbnail',
                     'category.id',
                     'category.name',
+                    'category.slug',
                     'productionBatch.id',
                     'productionBatch.name',
+                    'productionBatch.manufacturing_date',
+                    'productionBatch.expiration_date',
+                    'productionBatch.quantity',
+                    'productionBatch.production_place',
+                    'productionBatch.status',
                 ]);
-
-            queryBuilder.where('productImage.is_thumbnail = :is_thumbnail', { is_thumbnail: 1 });
 
             if (sort) {
                 queryBuilder.orderBy(`products.${sort.field}`, sort.order.toUpperCase() as 'ASC' | 'DESC');

@@ -14,7 +14,6 @@ import {
     ConflictException,
     UsePipes,
 } from '@nestjs/common';
-import { v4 as uuidv4 } from 'uuid';
 
 import { AuthService } from './auth.service';
 import { ResponseService } from '../common/response/response.service';
@@ -22,7 +21,7 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { RequestInfo } from '../common/request-info.decorator';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { UsersService } from '../modules/cms/users/users.service';
-import { ProfileDto } from './dto/profile.dto';
+import { UserProfileDto } from './dto/profile.dto';
 import { LocalAuthGuard } from './passport/local-auth.guard';
 import { Public } from './decorators/jwt.decorators';
 import { IRequestInfo } from '../common/types';
@@ -83,19 +82,24 @@ export class AuthController {
     }
 
     @Get('profile')
-    async getProfile(@Request() req) {
-        const _requestId = uuidv4();
-        const at = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
-        const user = await this.userService.findOne(req.user.userId);
+    async getProfile(@Request() req, @RequestInfo() requestInfo: IRequestInfo) {
+        const user = await this.userService.findOne(req.user.id);
+        if (!user) {
+            return this.responseService.createResponse(
+                HttpStatus.NOT_FOUND,
+                'Không tìm thấy người dùng',
+                requestInfo.requestId,
+                requestInfo.at,
+            );
+        }
 
-        const profile = new ProfileDto({
-            id: user.id,
-            email: user.email,
-            image: user.avatar,
-            name: user.fullname,
-        });
-
-        return this.responseService.createResponse(200, 'Lấy thông tin người dùng thành công', _requestId, at, profile);
+        return this.responseService.createResponse(
+            200,
+            'Lấy thông tin người dùng thành công',
+            requestInfo.requestId,
+            requestInfo.at,
+            new UserProfileDto(user),
+        );
     }
 
     @Put('change-password')
@@ -138,12 +142,14 @@ export class AuthController {
     @Put('update-profile')
     async updateProfile(@Body() updateProfileDto: UpdateProfileDto, @RequestInfo() requestInfo: IRequestInfo) {
         try {
+            const updatedUser = await this.authService.updateProfile(updateProfileDto);
+
             return this.responseService.createResponse(
                 HttpStatus.OK,
                 'Cập nhật thành công',
                 requestInfo.requestId,
                 requestInfo.at,
-                await this.authService.updateProfile(updateProfileDto),
+                new UserProfileDto(updatedUser),
             );
         } catch (error) {
             if (error instanceof NotFoundException) {
@@ -162,6 +168,12 @@ export class AuthController {
                 requestInfo.at,
             );
         }
+    }
+
+    @Put('profile')
+    @UsePipes(new CustomValidationPipe())
+    async updateWebProfile(@Body() updateProfileDto: UpdateProfileDto, @RequestInfo() requestInfo: IRequestInfo) {
+        return this.updateProfile(updateProfileDto, requestInfo);
     }
 
     @Get('decode')

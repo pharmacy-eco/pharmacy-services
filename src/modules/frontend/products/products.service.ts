@@ -10,6 +10,7 @@ import { Categories } from '../../../entity/categories.entity';
 import { PageBase } from '../../../common/response/response-page-base';
 import { FilterProductsByCategoryDto, ProductCategorySortBy } from './DTO/filter-products-by-category.dto';
 import { IProductListItem, IProductsByCategoryResponse } from './interfaces/product-list-response.interface';
+import { formatDate, formatDateTime } from '../../../utils/datetime.util';
 
 @Injectable({ scope: Scope.REQUEST })
 export class ProductsService {
@@ -41,24 +42,39 @@ export class ProductsService {
                 .innerJoin('product.category', 'filterCategory', 'filterCategory.id = :categoryId', {
                     categoryId: category.id,
                 })
-                .leftJoinAndSelect('product.productImage', 'productImage', 'productImage.is_thumbnail = :isThumbnail', {
-                    isThumbnail: 1,
-                })
+                .leftJoinAndSelect('product.productImage', 'productImage')
                 .leftJoinAndSelect('product.category', 'category')
+                .leftJoinAndSelect('product.productionBatch', 'productionBatch')
                 .select([
                     'product.id',
                     'product.name',
                     'product.meta_name',
+                    'product.meta_description',
                     'product.slug',
                     'product.unit',
+                    'product.description',
+                    'product.content',
                     'product.optionals',
                     'product.price',
                     'product.current_price',
+                    'product.is_hot',
+                    'product.status',
+                    'product.production_batch_id',
+                    'product.created_at',
+                    'product.updated_at',
                     'productImage.id',
                     'productImage.url',
+                    'productImage.is_thumbnail',
                     'category.id',
                     'category.name',
                     'category.slug',
+                    'productionBatch.id',
+                    'productionBatch.name',
+                    'productionBatch.manufacturing_date',
+                    'productionBatch.expiration_date',
+                    'productionBatch.quantity',
+                    'productionBatch.production_place',
+                    'productionBatch.status',
                 ])
                 .where('product.status = :status', { status: 1 })
                 .distinct(true);
@@ -102,22 +118,7 @@ export class ProductsService {
                     .getMany(),
             ]);
 
-            const items: IProductListItem[] = entities.map((product) => ({
-                id: product.id,
-                name: product.name,
-                meta_name: product.meta_name,
-                slug: product.slug,
-                unit: product.unit,
-                optionals: product.optionals,
-                price: product.price,
-                current_price: product.current_price,
-                thumbnail: product.productImage?.[0]?.url ?? '',
-                categories: (product.category ?? []).map((item) => ({
-                    id: item.id,
-                    name: item.name,
-                    slug: item.slug,
-                })),
-            }));
+            const items: IProductListItem[] = entities.map((product) => this.toProductListItem(product));
 
             return {
                 category: { id: category.id, name: category.name, slug: category.slug },
@@ -136,6 +137,7 @@ export class ProductsService {
                 .createQueryBuilder('product')
                 .leftJoinAndSelect('product.productImage', 'productImage')
                 .leftJoinAndSelect('product.category', 'category')
+                .leftJoinAndSelect('product.productionBatch', 'productionBatch')
                 .select([
                     'product.id',
                     'product.name',
@@ -144,19 +146,36 @@ export class ProductsService {
                     'product.optionals',
                     'product.meta_name',
                     'product.meta_description',
+                    'product.description',
                     'product.content',
                     'product.slug',
                     'product.unit',
+                    'product.is_hot',
+                    'product.status',
+                    'product.production_batch_id',
                     'product.created_at',
+                    'product.updated_at',
                     'productImage.id',
                     'productImage.url',
+                    'productImage.is_thumbnail',
                     'category.id',
                     'category.name',
                     'category.slug',
+                    'productionBatch.id',
+                    'productionBatch.name',
+                    'productionBatch.manufacturing_date',
+                    'productionBatch.expiration_date',
+                    'productionBatch.quantity',
+                    'productionBatch.production_place',
+                    'productionBatch.status',
                 ])
                 .where('product.slug = :slug', { slug: slug })
                 .andWhere('product.status = :status', { status: 1 })
                 .getOne();
+
+            if (!product) {
+                return null;
+            }
 
             const reviews = await this.reviewsRepository.find({
                 where: { status: 1, product_id: product.id },
@@ -183,7 +202,7 @@ export class ProductsService {
                 .getRawMany();
 
             const data = {
-                ...product,
+                ...this.toProductListItem(product),
                 reviews: reviews,
                 product_recomment: productRecomment,
             };
@@ -194,5 +213,58 @@ export class ProductsService {
             logger.error(error.stack);
             return null;
         }
+    }
+
+    private toProductListItem(product: Products): IProductListItem {
+        const images = (product.productImage ?? []).map((image) => ({
+            id: image.id,
+            url: image.url,
+            is_thumbnail: image.is_thumbnail,
+        }));
+        const thumbnail = images.find((image) => Number(image.is_thumbnail) === 1)?.url ?? images[0]?.url ?? '';
+        const categories = (product.category ?? []).map((item) => ({
+            id: item.id,
+            name: item.name,
+            slug: item.slug,
+        }));
+
+        return {
+            id: product.id,
+            name: product.name,
+            meta_name: product.meta_name,
+            meta_description: product.meta_description,
+            slug: product.slug,
+            unit: product.unit,
+            description: product.description,
+            content: product.content,
+            optionals: product.optionals || {},
+            price: product.price,
+            current_price: product.current_price,
+            is_hot: product.is_hot,
+            status: product.status,
+            thumbnail,
+            images,
+            category: categories.map((item) => item.name),
+            category_ids: categories.map((item) => item.id),
+            categories,
+            production_batch_id: product.production_batch_id,
+            production_batch: product.productionBatch
+                ? {
+                      id: product.productionBatch.id,
+                      name: product.productionBatch.name,
+                      manufacturing_date: product.productionBatch.manufacturing_date
+                          ? formatDate(product.productionBatch.manufacturing_date)
+                          : '',
+                      expiration_date: product.productionBatch.expiration_date
+                          ? formatDate(product.productionBatch.expiration_date)
+                          : '',
+                      quantity: product.productionBatch.quantity,
+                      production_place: product.productionBatch.production_place,
+                      status: product.productionBatch.status,
+                  }
+                : null,
+            created_at: product.created_at ? formatDateTime(product.created_at) : '',
+            updated_at: product.updated_at ? formatDateTime(product.updated_at) : '',
+        };
     }
 }

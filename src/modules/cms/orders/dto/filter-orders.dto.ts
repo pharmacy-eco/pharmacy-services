@@ -30,5 +30,11 @@ export class FilterOrdersDto {
     pageIndex: number;
 
     @ApiProperty({ required: false })
+    page: number;
+
+    @ApiProperty({ required: false })
+    page_size: number;
+
+    @ApiProperty({ required: false })
     sort: SortOption;
 }
