@@ -16,6 +16,7 @@ import { OrderDetail } from './src/entity/order_detail.entity';
 import { Transaction } from './src/entity/transaction.entity';
 import { PaymentHistory } from './src/entity/payment_history.entity';
 import { ProductionBatches } from './src/entity/production_batches.entity';
+import { ApiKeys } from './src/entity/api_keys.entity';
 
 console.log(process.env, '123123');
 
@@ -44,6 +45,7 @@ export default new DataSource({
         Transaction,
         PaymentHistory,
         ProductionBatches,
+        ApiKeys,
     ],
     migrations: [__dirname + '/**/*/database/migrations/*.ts'],
     synchronize: false, // Để false để tránh tự động tạo bảng khi không dùng migration tránh mất toàn bộ dữ liệu
