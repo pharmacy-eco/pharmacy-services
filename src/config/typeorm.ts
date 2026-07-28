@@ -18,6 +18,7 @@ import { OrderDetail } from '../entity/order_detail.entity';
 import { Transaction } from '../entity/transaction.entity';
 import { PaymentHistory } from '../entity/payment_history.entity';
 import { ProductionBatches } from '../entity/production_batches.entity';
+import { ApiKeys } from '../entity/api_keys.entity';
 
 const config = {
     type: 'mysql',
@@ -46,6 +47,7 @@ const config = {
         Transaction,
         PaymentHistory,
         ProductionBatches,
+        ApiKeys,
     ],
     migrations: [__dirname + '/**/database/migrations/*.ts'],
     autoLoadEntities: true,

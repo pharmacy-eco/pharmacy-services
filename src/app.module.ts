@@ -30,6 +30,8 @@ import { TransactionModule } from './modules/cms/transaction/transaction.module'
 import { FrontendPaymentModule } from './modules/frontend/payment/payment.module';
 import { ProductionBatchesModule } from './modules/cms/production-batches/production-batches.module';
 import { FrontendCategoriesModule } from './modules/frontend/categories/categories.module';
+import { ApiKeysModule } from './modules/cms/api-keys/api-keys.module';
+import { FrontendChatModule } from './modules/frontend/chat/chat.module';
 @Module({
     imports: [
         //CMS
@@ -44,6 +46,7 @@ import { FrontendCategoriesModule } from './modules/frontend/categories/categori
         GeneralModule,
         TransactionModule,
         ProductionBatchesModule,
+        ApiKeysModule,
         //Frontend
         FrontendLayoutModule,
         FrontendCategoriesModule,
@@ -53,6 +56,7 @@ import { FrontendCategoriesModule } from './modules/frontend/categories/categori
         FrontendReviewModule,
         FrontendSearchModule,
         FrontendPaymentModule,
+        FrontendChatModule,
         VnpayModule,
 
         //MailerModule
