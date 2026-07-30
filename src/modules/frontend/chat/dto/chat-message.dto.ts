@@ -1,25 +1,33 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty } from 'class-validator';
-
-export class ChatHistoryDto {
-    @ApiProperty({ enum: ['user', 'model'] })
-    role: 'user' | 'model';
-
-    @ApiProperty()
-    text: string;
-}
+import { IsInt, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class ChatMessageDto {
+    @IsString()
     @IsNotEmpty({ message: 'Tin nhắn không được để trống' })
-    @ApiProperty()
+    @ApiProperty({ example: 'Thuốc này nên uống trước hay sau bữa ăn?' })
     message: string;
 
-    @ApiProperty({ required: false })
-    api_key_id: number;
+    @IsOptional()
+    @IsInt()
+    @ApiProperty({
+        required: false,
+        description: 'Nên gửi lại api_key_id từ response trước khi tiếp tục một interaction.',
+    })
+    api_key_id?: number;
 
-    @ApiProperty({ required: false, type: [ChatHistoryDto] })
-    history: ChatHistoryDto[];
+    @IsOptional()
+    @IsString()
+    @ApiProperty({
+        required: false,
+        description: 'ID interaction trước đó do Gemini trả về, dùng để tiếp tục hội thoại.',
+    })
+    previous_interaction_id?: string;
 
-    @ApiProperty({ required: false })
-    system_instruction: string;
+    @IsOptional()
+    @IsString()
+    @ApiProperty({
+        required: false,
+        description: 'Chỉ dẫn hệ thống áp dụng cho interaction hiện tại.',
+    })
+    system_instruction?: string;
 }

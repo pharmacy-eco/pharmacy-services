@@ -20,7 +20,7 @@ export class ChatController {
     ) {}
 
     @Post('message')
-    @ApiOperation({ summary: 'Gửi tin nhắn người dùng lên Google AI Studio và trả response' })
+    @ApiOperation({ summary: 'Tạo một Gemini interaction hoặc tiếp tục hội thoại trước đó' })
     @UsePipes(new CustomValidationPipe())
     async sendMessage(@Body() payload: ChatMessageDto, @RequestInfo() requestInfo: IRequestInfo) {
         const data = await this.chatService.sendMessage(payload);
