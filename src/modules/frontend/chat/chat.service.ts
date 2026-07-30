@@ -1,4 +1,12 @@
-import { BadRequestException, Injectable, ServiceUnavailableException } from '@nestjs/common';
+import {
+    BadGatewayException,
+    BadRequestException,
+    GatewayTimeoutException,
+    HttpException,
+    HttpStatus,
+    Injectable,
+    ServiceUnavailableException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import axios from 'axios';
 import { Repository } from 'typeorm';
@@ -6,25 +14,47 @@ import logger from '../../../common/logger';
 import { ApiKeys } from '../../../entity/api_keys.entity';
 import { ChatMessageDto } from './dto/chat-message.dto';
 
-interface GeminiPart {
-    text: string;
+const GEMINI_INTERACTIONS_URL = 'https://generativelanguage.googleapis.com/v1beta/interactions';
+const GEMINI_REQUEST_TIMEOUT_MS = 120_000;
+const GEMINI_MAX_ATTEMPTS = 4;
+const GEMINI_RETRY_BASE_DELAY_MS = 1_000;
+const GEMINI_RETRY_JITTER_MS = 250;
+
+interface GeminiInteractionRequest {
+    model: string;
+    input: string;
+    store: boolean;
+    previous_interaction_id?: string;
+    system_instruction?: string;
 }
 
-interface GeminiContent {
-    role?: 'user' | 'model';
-    parts: GeminiPart[];
+interface GeminiTextContent {
+    type?: string;
+    text?: string;
 }
 
-interface GeminiResponse {
-    candidates?: Array<{
-        content?: {
-            parts?: GeminiPart[];
-        };
-    }>;
-    usageMetadata?: {
-        promptTokenCount?: number;
-        candidatesTokenCount?: number;
-        totalTokenCount?: number;
+interface GeminiInteractionStep {
+    type?: string;
+    content?: GeminiTextContent[];
+}
+
+interface GeminiInteractionResponse {
+    id?: string;
+    status?: string;
+    model?: string;
+    steps?: GeminiInteractionStep[];
+    usage?: {
+        total_tokens?: number;
+        total_input_tokens?: number;
+        total_output_tokens?: number;
+    };
+}
+
+interface GeminiErrorResponse {
+    error?: {
+        code?: number;
+        message?: string;
+        status?: string;
     };
 }
 
@@ -37,52 +67,171 @@ export class ChatService {
 
     async sendMessage(payload: ChatMessageDto) {
         const apiKey = await this.findAvailableApiKey(payload.api_key_id);
-        const contents = this.buildContents(payload);
-        const requestBody: Record<string, unknown> = { contents };
+        const model = apiKey.model || 'gemini-3.6-flash';
+        const requestBody = this.buildInteractionRequest(payload, model);
+        const response = await this.createInteraction(requestBody, apiKey.api_key);
+        const responseMessage = this.extractResponseMessage(response);
+        const usage = response.usage || {};
+        const totalTokenCount =
+            usage.total_tokens || this.estimateTokenCount(payload.message) + this.estimateTokenCount(responseMessage);
+        const savedApiKey = await this.increaseTokenUsed(apiKey, totalTokenCount);
+
+        return {
+            message: responseMessage,
+            interaction_id: response.id,
+            model: response.model || model,
+            api_key_id: savedApiKey.id,
+            usage: {
+                prompt_token_count: usage.total_input_tokens || 0,
+                candidates_token_count: usage.total_output_tokens || 0,
+                total_token_count: totalTokenCount,
+                token_quota: savedApiKey.token_quota || 0,
+                token_used: savedApiKey.token_used || 0,
+                token_remaining:
+                    savedApiKey.token_quota > 0 ? Math.max(savedApiKey.token_quota - savedApiKey.token_used, 0) : 0,
+            },
+        };
+    }
+
+    private buildInteractionRequest(payload: ChatMessageDto, model: string): GeminiInteractionRequest {
+        const requestBody: GeminiInteractionRequest = {
+            model,
+            input: payload.message,
+            store: true,
+        };
+
+        if (payload.previous_interaction_id) {
+            requestBody.previous_interaction_id = payload.previous_interaction_id;
+        }
 
         if (payload.system_instruction) {
-            requestBody.systemInstruction = {
-                parts: [{ text: payload.system_instruction }],
+            requestBody.system_instruction = payload.system_instruction;
+        }
+
+        return requestBody;
+    }
+
+    private async createInteraction(
+        requestBody: GeminiInteractionRequest,
+        apiKey: string,
+    ): Promise<GeminiInteractionResponse> {
+        let lastError: unknown;
+
+        for (let attempt = 1; attempt <= GEMINI_MAX_ATTEMPTS; attempt += 1) {
+            try {
+                const response = await axios.post<GeminiInteractionResponse>(GEMINI_INTERACTIONS_URL, requestBody, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-goog-api-key': apiKey,
+                    },
+                    timeout: GEMINI_REQUEST_TIMEOUT_MS,
+                });
+
+                return response.data;
+            } catch (error) {
+                lastError = error;
+
+                if (!this.isRetryableError(error) || attempt === GEMINI_MAX_ATTEMPTS) {
+                    break;
+                }
+
+                const delayMs = this.getRetryDelay(attempt);
+                logger.warn(
+                    JSON.stringify({
+                        message: 'Gemini Interactions API tạm thời không khả dụng, đang thử lại.',
+                        model: requestBody.model,
+                        attempt,
+                        next_attempt: attempt + 1,
+                        delay_ms: delayMs,
+                        upstream_status: this.getUpstreamStatus(error),
+                    }),
+                );
+                await this.waitBeforeRetry(delayMs);
+            }
+        }
+
+        this.logGeminiError(lastError, requestBody.model);
+        throw this.toGeminiHttpException(lastError);
+    }
+
+    private isRetryableError(error: unknown): boolean {
+        if (!axios.isAxiosError(error)) {
+            return false;
+        }
+
+        const status = error.response?.status;
+        return (
+            !status || status === HttpStatus.REQUEST_TIMEOUT || status === HttpStatus.TOO_MANY_REQUESTS || status >= 500
+        );
+    }
+
+    private getRetryDelay(attempt: number): number {
+        const exponentialDelay = GEMINI_RETRY_BASE_DELAY_MS * 2 ** (attempt - 1);
+        const jitter = Math.floor(Math.random() * GEMINI_RETRY_JITTER_MS);
+        return exponentialDelay + jitter;
+    }
+
+    private waitBeforeRetry(delayMs: number): Promise<void> {
+        return new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+
+    private getUpstreamStatus(error: unknown): number | undefined {
+        return axios.isAxiosError(error) ? error.response?.status : undefined;
+    }
+
+    private getGeminiErrorDetails(error: unknown) {
+        if (!axios.isAxiosError<GeminiErrorResponse>(error)) {
+            return {
+                status: undefined,
+                code: undefined,
+                message: error instanceof Error ? error.message : 'Unknown error',
             };
         }
 
-        try {
-            const model = apiKey.model || 'gemini-3.6-flash';
-            const response = await axios.post<GeminiResponse>(
-                `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
-                requestBody,
-                {
-                    headers: { 'Content-Type': 'application/json' },
-                    params: { key: apiKey.api_key },
-                },
-            );
+        return {
+            status: error.response?.status,
+            code: error.response?.data?.error?.status,
+            message: error.response?.data?.error?.message || error.message,
+        };
+    }
 
-            const responseMessage = this.extractResponseMessage(response.data);
-            const usage = response.data.usageMetadata || {};
-            const totalTokenCount =
-                usage.totalTokenCount ||
-                this.estimateTokenCount(payload.message) + this.estimateTokenCount(responseMessage);
-
-            const savedApiKey = await this.increaseTokenUsed(apiKey, totalTokenCount);
-
-            return {
-                message: responseMessage,
+    private logGeminiError(error: unknown, model: string): void {
+        const details = this.getGeminiErrorDetails(error);
+        logger.error(
+            JSON.stringify({
+                message: 'Lỗi khi gọi Gemini Interactions API.',
                 model,
-                api_key_id: savedApiKey.id,
-                usage: {
-                    prompt_token_count: usage.promptTokenCount || 0,
-                    candidates_token_count: usage.candidatesTokenCount || 0,
-                    total_token_count: totalTokenCount,
-                    token_quota: savedApiKey.token_quota || 0,
-                    token_used: savedApiKey.token_used || 0,
-                    token_remaining:
-                        savedApiKey.token_quota > 0 ? Math.max(savedApiKey.token_quota - savedApiKey.token_used, 0) : 0,
-                },
-            };
-        } catch (error) {
-            logger.error('Lỗi khi gọi Google AI Studio API.');
-            logger.error(error.response?.data || error.stack);
-            throw new ServiceUnavailableException('Không gọi được Google AI Studio API. Vui lòng thử lại sau.');
+                upstream_status: details.status,
+                upstream_code: details.code,
+                upstream_message: details.message,
+            }),
+        );
+    }
+
+    private toGeminiHttpException(error: unknown): HttpException {
+        const details = this.getGeminiErrorDetails(error);
+
+        switch (details.status) {
+            case HttpStatus.BAD_REQUEST:
+                return new BadRequestException(`Yêu cầu gửi tới Google Gemini không hợp lệ: ${details.message}`);
+            case HttpStatus.TOO_MANY_REQUESTS:
+                return new HttpException(
+                    'Google Gemini đang giới hạn tần suất yêu cầu. Vui lòng thử lại sau.',
+                    HttpStatus.TOO_MANY_REQUESTS,
+                );
+            case HttpStatus.SERVICE_UNAVAILABLE:
+                return new ServiceUnavailableException(
+                    'Google Gemini đang tạm thời quá tải hoặc không khả dụng. Vui lòng thử lại sau.',
+                );
+            case HttpStatus.GATEWAY_TIMEOUT:
+                return new GatewayTimeoutException('Google Gemini không phản hồi kịp thời. Vui lòng thử lại sau.');
+            case HttpStatus.UNAUTHORIZED:
+            case HttpStatus.FORBIDDEN:
+                return new BadGatewayException('API key Google Gemini không hợp lệ hoặc không có quyền truy cập.');
+            case HttpStatus.NOT_FOUND:
+                return new BadGatewayException('Model hoặc tài nguyên Google Gemini không tồn tại.');
+            default:
+                return new BadGatewayException('Không gọi được Google Gemini API. Vui lòng thử lại sau.');
         }
     }
 
@@ -107,32 +256,17 @@ export class ChatService {
         return apiKey;
     }
 
-    private buildContents(payload: ChatMessageDto): GeminiContent[] {
-        const history = Array.isArray(payload.history) ? payload.history : [];
-        const contents = history
-            .filter((item) => item?.text && ['user', 'model'].includes(item.role))
-            .map((item) => ({
-                role: item.role,
-                parts: [{ text: item.text }],
-            }));
-
-        contents.push({
-            role: 'user',
-            parts: [{ text: payload.message }],
-        });
-
-        return contents;
-    }
-
-    private extractResponseMessage(response: GeminiResponse): string {
-        const parts = response.candidates?.[0]?.content?.parts || [];
-        const message = parts
-            .map((part) => part.text)
+    private extractResponseMessage(response: GeminiInteractionResponse): string {
+        const message = (response.steps || [])
+            .filter((step) => step.type === 'model_output')
+            .flatMap((step) => step.content || [])
+            .filter((content) => content.type === 'text' && content.text)
+            .map((content) => content.text)
             .join('\n')
             .trim();
 
-        if (!message) {
-            throw new ServiceUnavailableException('Google AI Studio không trả về nội dung phản hồi.');
+        if (!response.id || response.status !== 'completed' || !message) {
+            throw new ServiceUnavailableException('Google Gemini không trả về nội dung phản hồi hoàn chỉnh.');
         }
 
         return message;

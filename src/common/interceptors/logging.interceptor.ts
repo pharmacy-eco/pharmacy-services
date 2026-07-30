@@ -8,7 +8,7 @@ import {
     ConflictException,
 } from '@nestjs/common';
 import { Observable, of, throwError } from 'rxjs';
-import { catchError, tap } from 'rxjs/operators';
+import { catchError } from 'rxjs/operators';
 import { v4 as uuidv4 } from 'uuid';
 import logger from '../logger';
 
@@ -19,14 +19,7 @@ export class LoggingInterceptor implements NestInterceptor {
         request.requestId = uuidv4();
         request.at = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
 
-        return next.handle().pipe(
-            tap((data) => {
-                const objectString = JSON.stringify(data);
-                const message = `${objectString}`;
-                // logger.info(message);
-            }),
-            catchError((error) => this.handleError(error, request)),
-        );
+        return next.handle().pipe(catchError((error) => this.handleError(error, request)));
     }
 
     private handleError(error: any, request: any): Observable<any> {
@@ -75,6 +68,14 @@ export class LoggingInterceptor implements NestInterceptor {
     }
 
     private logError(error: any): void {
-        logger.error(error);
+        logger.error(
+            JSON.stringify({
+                name: error?.name || 'Error',
+                message: error?.message || 'Unexpected error',
+                statusCode: typeof error?.getStatus === 'function' ? error.getStatus() : 500,
+                response: typeof error?.getResponse === 'function' ? error.getResponse() : undefined,
+                stack: error?.stack,
+            }),
+        );
     }
 }
