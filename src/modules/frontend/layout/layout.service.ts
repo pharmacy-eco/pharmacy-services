@@ -1,7 +1,7 @@
 import { Inject, Injectable, Scope } from '@nestjs/common';
 import { REQUEST } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import logger from '../../../common/logger';
 import { CustomRequest } from '../../../interfaces/custom-request.interface';
 import { General } from '../../../entity/general.entity';
@@ -103,12 +103,10 @@ export class LayoutService {
 
             const blogs = await this.blogsRepository.find({
                 select: ['id', 'slug', 'meta_title', 'meta_description', 'description', 'title', 'image'],
-                where: { status: 1 },
+                where: { status: 1, deleted_at: IsNull() },
                 order: { id: 'DESC' },
                 take: 4,
             });
-
-            console.log(blogs);
 
             const categoryResult = await this.categoriesRepository
                 .createQueryBuilder('categories')

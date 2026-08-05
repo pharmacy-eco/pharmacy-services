@@ -97,7 +97,7 @@ export class ProductListItemDto implements IProductListItem {
     thumbnail: string;
 
     @ApiProperty({ type: [ProductImageSummaryDto] })
-    images: ProductImageSummaryDto[];
+    productImage: ProductImageSummaryDto[];
 
     @ApiProperty({ type: [String], example: ['Vitamin và khoáng chất'] })
     category: string[];

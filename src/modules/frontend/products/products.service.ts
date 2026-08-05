@@ -126,7 +126,7 @@ export class ProductsService {
             };
         } catch (error) {
             logger.error('Lỗi khi lấy danh sách sản phẩm theo danh mục.');
-            logger.error(error.stack);
+            logger.error(error);
             return null;
         }
     }
@@ -210,18 +210,19 @@ export class ProductsService {
             return data;
         } catch (error) {
             logger.error('Lỗi khi lấy dữ liệu chi tiết sản phẩm.');
-            logger.error(error.stack);
+            logger.error(error);
             return null;
         }
     }
 
     private toProductListItem(product: Products): IProductListItem {
-        const images = (product.productImage ?? []).map((image) => ({
+        const productImage = (product.productImage ?? []).map((image) => ({
             id: image.id,
             url: image.url,
             is_thumbnail: image.is_thumbnail,
         }));
-        const thumbnail = images.find((image) => Number(image.is_thumbnail) === 1)?.url ?? images[0]?.url ?? '';
+        const thumbnail =
+            productImage.find((image) => Number(image.is_thumbnail) === 1)?.url ?? productImage[0]?.url ?? '';
         const categories = (product.category ?? []).map((item) => ({
             id: item.id,
             name: item.name,
@@ -243,7 +244,7 @@ export class ProductsService {
             is_hot: product.is_hot,
             status: product.status,
             thumbnail,
-            images,
+            productImage,
             category: categories.map((item) => item.name),
             category_ids: categories.map((item) => item.id),
             categories,

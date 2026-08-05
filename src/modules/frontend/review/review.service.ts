@@ -24,7 +24,7 @@ export class ReviewsService {
             return dataSaved;
         } catch (error) {
             logger.error('Lỗi khi tạo mới.');
-            logger.error(error.stack);
+            logger.error(error);
             return null;
         }
     }

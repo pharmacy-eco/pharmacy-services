@@ -35,7 +35,7 @@ export interface IProductListItem {
     is_hot: number;
     status: number;
     thumbnail: string;
-    images: IProductImageSummary[];
+    productImage: IProductImageSummary[];
     category: string[];
     category_ids: number[];
     categories: IProductCategorySummary[];
